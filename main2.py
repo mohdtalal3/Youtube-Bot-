@@ -1,3 +1,6 @@
+# main_driver.switch_to.window(main_driver.window_handles[-1])
+#                 main_driver.close()
+#                 main_driver.switch_to.window(main_driver.window_handles[-1])
 import os
 import time
 import json
@@ -26,7 +29,9 @@ import shutil
 import bot_with_google
 import bot_without_google
 from concurrent.futures import ThreadPoolExecutor
-
+import threading
+import number_of_bots_to_run
+semaphore = threading.Semaphore(number_of_bots_to_run.a)
 class YouTubeBotGUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -102,13 +107,20 @@ class YouTubeBotGUI(QWidget):
 
         csv_file = "bot_data.csv"
         bots = create_bot_from_csv(csv_file, max_time, option, link, checker)
+        threads = []
         for bot in bots:
-            self.run_single_bot(bot)
-        # Using ThreadPoolExecutor
-       # Using ThreadPoolExecutor
-        # with ThreadPoolExecutor(max_workers=100) as executor:
-        #     executor.map(lambda bot: self.run_single_bot(bot), bots)
-        
+            try:
+                bot.driver = bot.setup_webdriver()
+                semaphore.acquire()
+                thread = threading.Thread(target=run_with_semaphore, args=(bot,))
+                threads.append(thread)
+                thread.start()
+                #time.sleep(2)
+            except:
+                continue
+
+        for thread in threads:
+            thread.join()
         print("All bots completed")
         return
     
@@ -126,18 +138,25 @@ class YouTubeBotGUI(QWidget):
             checker = "L"
         csv_file = "bot_data_without_google.csv"
         bots = create_bot_from_csv_without_google(csv_file, max_time, link, checker)
+        threads = []
         for bot in bots:
-            self.run_single_bot(bot)
-        # Using ThreadPoolExecutor
-        # with ThreadPoolExecutor(max_workers=1) as executor:
-        #     executor.map(lambda bot: self.run_single_bot(bot), bots)
-        
-        print("All bots completed")
+            try:
+                bot.driver = bot.setup_webdriver()
+                # Acquire a permit from the semaphore
+                semaphore.acquire()
+                thread = threading.Thread(target=run_with_semaphore, args=(bot,))
+                threads.append(thread)
+                thread.start()
+                #time.sleep(2)
+            except:
+                continue
+
+        for thread in threads:
+            thread.join()
+        print("All bots completes")
         return
 
-    def run_single_bot(self,bot):
-        bot.driver = bot.setup_webdriver()
-        bot.run_bot()
+
 
 
     def start_bot(self):
@@ -150,7 +169,12 @@ class YouTubeBotGUI(QWidget):
 
         
         
-
+def run_with_semaphore(bot):
+    try:
+        bot.run_bot()
+    finally:
+        # Release the permit back to the semaphore
+        semaphore.release()
 def create_bot_from_csv_without_google(csv_file, max_time,link,checker):
     bots = []
     data = pd.read_csv(csv_file)

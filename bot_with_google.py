@@ -45,12 +45,15 @@ class YouTubeBot:
         self.ss=None
     def setup_webdriver(self):
         chrome_driver_path = "chromedriver.exe"
-        chrome_binary_path = "Google\\Chrome\\Application\\chrome.exe"
         driver_path = "driver_folders"
         new_chrome_driver_name = f"chromedriver_{self.count}.exe"
         os.makedirs(driver_path, exist_ok=True)
         new_chrome_driver_path = os.path.join(driver_path, new_chrome_driver_name)
+        if os.path.exists(new_chrome_driver_path):
+            os.remove(new_chrome_driver_path)
         shutil.copyfile(chrome_driver_path, new_chrome_driver_path)
+
+        chrome_binary_path = "Google\\Chrome\\Application\\chrome.exe"
         proxy_host = self.ip
         proxy_http_port = 50100
         proxy_socks5_port = 50101
@@ -62,11 +65,12 @@ class YouTubeBot:
         #         'http': f'http://{username}:{password}@{proxy_host}:{proxy_http_port}',
         #         'https': f'http://{username}:{password}@{proxy_host}:{proxy_http_port}',
         #         'socks5': f'socks5://{username}:{password}@{proxy_host}:{proxy_socks5_port}',
-        #         'no_proxy': 'localhost,127.0.0.1',
+        #        'no_proxy': 'localhost,127.0.0.1',
         #         'verify_ssl': False,
         #         #'certs': 'ca.crt'  # Path to your certificate file
         #     },
         # }
+
         seleniumwire_options = {
             'proxy': {
                 'no_proxy': 'localhost,127.0.0.1',  # Exclude localhost and 127.0.0.1 from proxy
@@ -74,25 +78,25 @@ class YouTubeBot:
                 'use_system_proxy': True  # Use system proxy settings
             },
         }
+
         options = ChromeOptions()
-        #options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.112 Safari/537.36")
         # options.add_experimental_option("excludeSwitches", ["disable-popup-blocking", "enable-automation"])
-        options.add_argument("--disable-popup-blocking")
-        options.add_argument("--enable-automation")
+        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
+        #options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_argument('--ignore-ssl-errors=yes')
         options.add_argument('--ignore-certificate-errors')
         options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-        options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-browser-side-navigation")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
-        options.add_argument('--ignore-certificate-errors')
         options.add_argument('--allow-running-insecure-content')
         options.add_argument("--disable-logging")
+
         options.binary_location = chrome_binary_path
         options.add_argument("--lang=en-US")
+        #options.add_argument('--headless')
         options.add_argument('--window-size=1920,1080')
         service = Service(executable_path=new_chrome_driver_path)
         driver = Chrome(version_main=115,options=options,service=service, seleniumwire_options=seleniumwire_options)
@@ -195,6 +199,9 @@ class YouTubeBot:
         return total_seconds
 
     def check_add(self):
+        def scroll_down(driver):
+            driver.find_element(By.TAG_NAME,'body').send_keys(Keys.ARROW_DOWN)
+            time.sleep(1)
         try:
             but = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[@class='ytp-large-play-button ytp-button']")))
@@ -204,25 +211,46 @@ class YouTubeBot:
             pass
         
         try:
+            #current_window_handle = self.driver.current_window_handle
             print("Enter to check add")
-            ad_duration = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//span[@class='ytp-ad-duration-remaining']"))).text
+            # ad_duration = WebDriverWait(self.driver, 10).until(
+            #     EC.presence_of_element_located((By.XPATH, "//span[@class='ytp-ad-duration-remaining']"))).text
             self.driver.find_element(By.XPATH,'//*[@id="movie_player"]/div[1]/video').click()
             file_path = os.path.join(self.ss,f'SS_{str(generate_8_digit_uuid())}.png')
             self.driver.get_screenshot_as_file(file_path)
-            time.sleep(1)
-            self.driver.find_element(By.XPATH,"//span[@class='ytp-ad-button-text']").click()
-            # ad_duration = WebDriverWait(self.driver, 10).until(
-            #     EC.presence_of_element_located((By.XPATH, "//span[@class='ytp-time-duration']"))).text
-            # ad_duration = self.convert_time(ad_duration)
-            # print(ad_duration)
-            # self.max_duration = self.max_duration + ad_duration
-            # print(self.max_duration)
-            # time.sleep(2)
-            # self.driver.find_element(By.XPATH,'//*[@id="movie_player"]/div[1]/video').click()
-            # file_path = os.path.join(self.ss,f'SS_{str(generate_8_digit_uuid())}.png')
-            # self.driver.get_screenshot_as_file(file_path)
-            # time.sleep(ad_duration)
+            time.sleep(2)
+            l=False
+            try:
+                self.driver.find_element(By.XPATH,"//button[contains(@class, 'ytp-ad-button') and contains(@aria-label, 'link')]").click()
+                l=True
+            except:
+                print("First try failed")
+            if l is not True:
+                try:
+                    self.driver.find_element(By.XPATH,"//span[@class='ytp-ad-button-text']").click()
+                except:
+                    print("second try failed")
+                
+
+            try:
+                # WebDriverWait(self.driver, 10).until(EC.number_of_windows_to_be(2))
+                # for window_handle in self.driver.window_handles:
+                #     if window_handle != current_window_handle:
+                self.driver.switch_to.window(self.driver.window_handles[-1])
+                print("opening add in new tab")
+                time.sleep(5)
+                file_path = os.path.join(self.ss,f'SS_{str(generate_8_digit_uuid())}.png')
+                self.driver.get_screenshot_as_file(file_path)
+                for _ in range(10):
+                    scroll_down(self.driver)
+                self.driver.close()
+                self.driver.switch_to.window(self.driver.window_handles[-1])
+                # time.sleep(4)
+                # self.driver.quit()
+                # sys.exit()
+                #break
+            except:
+                print("New window did not open within the timeout period.")
         except:
             print("No add for now")
         
@@ -233,6 +261,8 @@ class YouTubeBot:
             time.sleep(1)
         except:
             print("No skip Button")
+
+
 
     def sub_like(self):
         try:
@@ -333,6 +363,12 @@ class YouTubeBot:
             file_path = os.path.join(self.ss,f'SS_{str(generate_8_digit_uuid())}.png')
             self.driver.get_screenshot_as_file(file_path)
             time.sleep(5)
+            try:
+                self.driver.find_element(By.XPATH,"//button[normalize-space(.)='Accept all']").click()
+                print("Accept cookies")
+                time.sleep(3)
+            except:
+                print("No cookies")
             self.text_search()
             self.play_video()
         elif self.checker =="L":
@@ -341,6 +377,12 @@ class YouTubeBot:
             time.sleep(5)
             file_path = os.path.join(self.ss,f'SS_{str(generate_8_digit_uuid())}.png')
             self.driver.get_screenshot_as_file(file_path)
+            try:
+                self.driver.find_element(By.XPATH,"//button[normalize-space(.)='Accept all']").click()
+                print("Accept cookies")
+                time.sleep(3)
+            except:
+                print("No cookies")
             self.play_video()
 
 
