@@ -57,27 +57,27 @@ class YouTubeBot:
         proxy_host = self.ip
         proxy_http_port = 50100
         proxy_socks5_port = 50101
-        username = 'hatemeltorky10'
-        password = 'ntaU6gaAet'
+        username = '' # add yours 
+        password = '' # add yours
         
-        # seleniumwire_options = {
-        #     'proxy': {
-        #         'http': f'http://{username}:{password}@{proxy_host}:{proxy_http_port}',
-        #         'https': f'http://{username}:{password}@{proxy_host}:{proxy_http_port}',
-        #         'socks5': f'socks5://{username}:{password}@{proxy_host}:{proxy_socks5_port}',
-        #        'no_proxy': 'localhost,127.0.0.1',
-        #         'verify_ssl': False,
-        #         #'certs': 'ca.crt'  # Path to your certificate file
-        #     },
-        # }
-
-        seleniumwire_options = {
+        seleniumwire_options = {                   # used to run using proxies
             'proxy': {
-                'no_proxy': 'localhost,127.0.0.1',  # Exclude localhost and 127.0.0.1 from proxy
+                'http': f'http://{username}:{password}@{proxy_host}:{proxy_http_port}',
+                'https': f'http://{username}:{password}@{proxy_host}:{proxy_http_port}',
+                'socks5': f'socks5://{username}:{password}@{proxy_host}:{proxy_socks5_port}',
+               'no_proxy': 'localhost,127.0.0.1',
                 'verify_ssl': False,
-                'use_system_proxy': True  # Use system proxy settings
+                #'certs': 'ca.crt'  # Path to your certificate file
             },
         }
+
+        # seleniumwire_options = {                        # used to run using local machine proxy
+        #     'proxy': {
+        #         'no_proxy': 'localhost,127.0.0.1',  # Exclude localhost and 127.0.0.1 from proxy
+        #         'verify_ssl': False,
+        #         'use_system_proxy': True  # Use system proxy settings
+        #     },
+        # }
 
         options = ChromeOptions()
         # options.add_experimental_option("excludeSwitches", ["disable-popup-blocking", "enable-automation"])
